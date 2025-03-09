@@ -45,6 +45,7 @@ const videoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-videoSchema.plugin(mongooseAggregatePaginate);
+videoSchema.plugin(mongooseAggregatePaginate); // what is this? 
+// mongooseAggregatePaginate is a plugin that adds a paginate method to the Model that uses the aggregate function to get the data. This is useful when you need to get the total count of documents that match the query. 
 
 export const Video = mongoose.model("Video", videoSchema);
