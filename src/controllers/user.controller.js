@@ -52,16 +52,15 @@ const registerUser = asyncHandler(async (req, res) => {
     avatar: avatar.url,
     coverImage: cover?.url || "",
   });
-  // 9.check user is created successfully
+  // 9. remove password and refresh token from response
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-  // 10. remove password and refresh token from response
+  // 10.check user is created successfully
   if (!createdUser) {
     throw new ApiError(500, "Error creating user");
   }
   // 11.send response to frontend
-
   // return res.send(new ApiResponse(200,"User created successfully",createdUser)) not good practice
   return res
     .status(200)
