@@ -3,11 +3,11 @@ import dotenv from "dotenv";
 dotenv.config();
 // import express from "express";
 import connectDB from "./db/index.js";
-
+import { app } from "./app.js";
 connectDB()
   .then(() => {
     try {
-      app.on(error, (err) => {
+      app.on("error", (err) => {
         console.log("Server Crashed", err);
       });
       app.listen(process.env.PORT || 5000, () => {
