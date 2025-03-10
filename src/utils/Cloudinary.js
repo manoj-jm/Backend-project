@@ -1,5 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // cloudinary configuration
 cloudinary.config({
@@ -13,7 +16,7 @@ const uploadToCloudinary = async (filepath) => {
     if (!filepath) return null;
     // upload to cloudinary
     const response = await cloudinary.uploader.upload(filepath, {
-      resource_type: "auto",
+      resource_type: "auto", // resource_type should be "auto" to automatically detect the type of file
     });
     console.log("File has been uploaded to Cloudinary:", response.url);
     return response;

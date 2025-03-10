@@ -6,65 +6,83 @@ import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
 
 // it going to get called when user hit a route "registerUser"
+
 const registerUser = asyncHandler(async (req, res) => {
-  // 1.get user details from frontend
-  const { username, email, fullname, password } = req.body;
-  //  console.log(" email : ", email);
+  // get user details from frontend
+  // validation - not empty
+  // check if user already exists: username, email
+  // check for images, check for avatar
+  // upload them to cloudinary, avatar
+  // create user object - create entry in db
+  // remove password and refresh token field from response
+  // check for user creation
+  // return res
 
-  // 2.validations - not empty
+  //check whether data came or not
+  console.log("Received Files:", req.files);
+  console.log("Request Body:", req.body);
+
+  //   if (!req.files || !req.files.avatar || !req.files.coverimage) {
+  //     return res.status(400).json({ error: "Missing files" });
+  //   }
+
+  const { fullname, email, username, password } = req.body;
+  //console.log("email: ", email);
+
   if (
-    [username, email, fullname, password].some((field) => {
-      field.trim() === "";
-    })
+    [fullname, email, username, password].some((field) => field?.trim() === "")
   ) {
-    throw new ApiError(400, "All fileds are required");
+    throw new ApiError(400, "All fields are required");
   }
-  // 3.check if user already exists(by username , email)
-  const userExists = await User.findOne({ $or: [{ username }, { email }] });
-  if (userExists) {
-    throw new ApiError(409, "User with username or email already exists");
-  }
-  // 4.check if images are uploaded
-  const avatarImageLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
-  // 5.console.log(" avatarImageLocalPath : ", avatarImageLocalPath);
-  if (!avatarImageLocalPath) {
-    throw new ApiError(400, `Please upload ${avatarImageLocalPath} image`);
-  }
-  if (!coverImageLocalPath) {
-    throw new ApiError(400, `Please upload ${coverImageLocalPath} image`);
-  }
-  // 6.upload images to cloudinary
-  const avatar = await uploadToCloudinary(avatarImageLocalPath);
-  const cover = await uploadToCloudinary(coverImageLocalPath);
 
-  // 7.check does avatar and cover image uploaded successfully
+  const existedUser = await User.findOne({
+    $or: [{ username }, { email }],
+  });
+
+  if (existedUser) {
+    throw new ApiError(409, "User with email or username already exists");
+  }
+  //   console.log(req.files?.avatar[0].path);
+
+  const avatarLocalPath = req.files?.avatar[0]?.path;
+  const coverImageLocalPath = req.files?.coverimage[0]?.path;
+
+  //   let coverImageLocalPath;
+  //   if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+  //       coverImageLocalPath = req.files.coverImage[0].path
+  //   }
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is required");
+  }
+
+  const avatar = await uploadToCloudinary(avatarLocalPath);
+  const coverImage = await uploadToCloudinary(coverImageLocalPath);
+
   if (!avatar) {
-    throw new ApiError(400, "Error uploading avatar image");
+    throw new ApiError(400, "Avatar file is required");
   }
 
-  // 8.create a user entry to the database
   const user = await User.create({
     fullname,
-    username: username.toLowerCase(),
+    avatar: avatar.url,
+    coverImage: coverImage?.url || "",
     email,
     password,
-    avatar: avatar.url,
-    coverImage: cover?.url || "",
+    username: username.toLowerCase(),
   });
-  // 9. remove password and refresh token from response
+
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-  // 10.check user is created successfully
+
   if (!createdUser) {
-    throw new ApiError(500, "Error creating user");
+    throw new ApiError(500, "Something went wrong while registering the user");
   }
-  // 11.send response to frontend
-  // return res.send(new ApiResponse(200,"User created successfully",createdUser)) not good practice
+
   return res
-    .status(200)
-    .json(new ApiResponse(200, "User created successfully", createdUser));
+    .status(201)
+    .json(new ApiResponse(200, createdUser, "User registered Successfully"));
 });
 
 export { registerUser };

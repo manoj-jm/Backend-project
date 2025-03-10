@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema(
 );
 // pre is a middleware hooks that runs before the save method is called on the model
 userSchema.pre("save", async function (next) {
-  if (!this.modified("password")) return next();
+  if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 8);
   next();
 });
@@ -73,7 +73,7 @@ userSchema.methods.generateAccessToken = function () {
 userSchema.methods.generateRefreshToken = function () {
   jwt.sign(
     {
-      _id: this._id
+      _id: this._id,
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
