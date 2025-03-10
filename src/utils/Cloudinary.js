@@ -19,6 +19,11 @@ const uploadToCloudinary = async (filepath) => {
       resource_type: "auto",  
     });
     // console.log("File has been uploaded to Cloudinary:", response);
+    fs.unlink(filepath, (err) => {
+      if (err) {
+        console.error("file can't be deleted", err);
+      }
+    });
     return response;
   } catch (error) {
     fs.unlinkSync(filepath); // remove the locally saved temporary file as the upload operation failed
