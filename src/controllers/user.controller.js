@@ -19,8 +19,8 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   //check whether data came or not
-  console.log("Received Files:", req.files);
-  console.log("Request Body:", req.body);
+  // console.log("Received Files:", req.files);
+  // console.log("Request Body:", req.body);
 
   //   if (!req.files || !req.files.avatar || !req.files.coverimage) {
   //     return res.status(400).json({ error: "Missing files" });
@@ -44,20 +44,21 @@ const registerUser = asyncHandler(async (req, res) => {
   }
   //   console.log(req.files?.avatar[0].path);
 
-  const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverimage[0]?.path;
-
-  //   let coverImageLocalPath;
-  //   if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-  //       coverImageLocalPath = req.files.coverImage[0].path
-  //   }
+  const avatarLocalPath = req.files?.avatar[0]?.path; // multer store the files into local , so we can get it using req.files property
+  
+  //const coverImageLocalPath = req.files?.coverimage[0]?.path;
+  // check whether coverimage is came or not
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverimage) && req.files.coverimage.length > 0) {
+        coverImageLocalPath = req.files.coverimage[0].path
+    }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
   }
 
   const avatar = await uploadToCloudinary(avatarLocalPath);
-  const coverImage = await uploadToCloudinary(coverImageLocalPath);
+  const coverimage = await uploadToCloudinary(coverImageLocalPath);
 
   if (!avatar) {
     throw new ApiError(400, "Avatar file is required");
@@ -66,7 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({
     fullname,
     avatar: avatar.url,
-    coverImage: coverImage?.url || "",
+    coverimage: coverimage?.url || " ",
     email,
     password,
     username: username.toLowerCase(),
