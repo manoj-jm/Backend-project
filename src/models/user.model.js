@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
   },
-  { timeseries: true }
+  { timestamps: true }
 );
 // pre is a middleware hooks that runs before the save method is called on the model
 userSchema.pre("save", async function (next) {

@@ -70,6 +70,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     username: username.toLowerCase(),
+    
   });
 
   const createdUser = await User.findById(user._id).select(
