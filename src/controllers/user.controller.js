@@ -5,6 +5,27 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
 
+// creating a methods for access and refresh tokens generation
+
+const generateAccessTokenAndRefreshTokens = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    // saving the user refreshToken into database
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      "Something went wrong while generating access and refersh tokens ! "
+    );
+  }
+};
+
 // it going to get called when user hit a route "registerUser"
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -44,14 +65,18 @@ const registerUser = asyncHandler(async (req, res) => {
   }
   //   console.log(req.files?.avatar[0].path);
 
-  const avatarLocalPath = req.files?.avatar[0]?.path; // multer store the files into local , so we can get it using req.files property
-  
+  const avatarLocalPath = req.files?.avatar[0]?.path; // 🚀 multer store the files into local , so we can get it using req.files property
+
   //const coverImageLocalPath = req.files?.coverimage[0]?.path;
   // check whether coverimage is came or not
-    let coverImageLocalPath;
-    if (req.files && Array.isArray(req.files.coverimage) && req.files.coverimage.length > 0) {
-        coverImageLocalPath = req.files.coverimage[0].path
-    }
+  let coverImageLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.coverimage) &&
+    req.files.coverimage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverimage[0].path;
+  }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar file is required");
@@ -71,7 +96,6 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     username: username.toLowerCase(),
-    
   });
 
   const createdUser = await User.findById(user._id).select(
@@ -87,4 +111,91 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdUser, "User registered Successfully"));
 });
 
-export { registerUser };
+const loginUser = asyncHandler(async (req, res) => {
+  // req body -> data
+  // username or email
+  // find the user and check user password
+  // access and refresh token generate
+  // send cookie
+
+  const { username, email, password, fullname } = req.body;
+
+  if (
+    [fullname, email, username, password].some((field) => field?.trim() === "")
+  ) {
+    throw new ApiError(400, "all  are field Required!");
+  }
+
+  const user = await User.findone({
+    $or: [{ username }, { email }],
+  });
+  if (!user) {
+    throw new ApiError(400, "User does not exists");
+  }
+
+  const ispasswordValid = await user.isPasswordCorrect(password);
+  if (!ispasswordValid) {
+    throw new ApiError(401, "Invalid user credentials");
+  }
+
+  // if password is correct make access and refresh token
+  const { accessToken, refreshToken } =
+    await generateAccessTokenAndRefreshTokens(user._id);
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  // Does the Backend Send a Cookie After Login?
+  // Yes! When you log in, the backend sends a response that usually contains a cookie for authentication purposes.
+  // The cookie helps in session management and user authentication. It allows the client (browser/Postman) to store a small piece of data so that the user stays logged in without re-entering credentials.
+  //A cookie typically contains an authentication token (like JWT) or a session ID.
+  // Set-Cookie: session_id=abc123xyz; HttpOnly; Secure; Path=/; Max-Age=3600 (1hr)
+
+  ///When the backend sends a Set-Cookie header, the frontend automatically stores the cookie.
+  // In a browser, the cookie is stored and sent with every request to the backend.
+  // In Postman, cookies can be viewed under the Cookies tab
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  //  Yes, res.cookie() sets cookies in the backend, and the browser automatically stores them
+  //  Yes, res.json({ user: token }) sends the token to the frontend, allowing it to be stored manually.
+
+
+  // res.cookie() means , we are setting all tokens inside res object ? right ? , since we injected the cookieparser middleware , so we can access the cookies from both req and res object ?  ✅ correct manoj!
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options) // seting cookies in the backend ( res object)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        { user: loggedInUser, accessToken, refreshToken },
+        "user logedin successfully"
+      )
+    );
+});
+
+
+const logoutUser = asyncHandler(async (req,res)=>{
+  // since verify middleware , we have the access to user in req object 
+  await User.findByIdAndUpdate(
+    req.user?._id,{
+      $set : { refreshToken:undefined}
+    },{
+      new: true // while responding , u'll get updated value 
+    }
+  )
+
+  const options = {
+    httpOnly : true,
+    secure : true,
+  }
+
+  res.status(200).clearCookie("accessToken", accessToken, options).clearCookie("refreshToken",refreshToken,options).json(new ApiResponse(200,"User is logout successfully"))
+})
+
+export { registerUser, loginUser , logoutUser };
