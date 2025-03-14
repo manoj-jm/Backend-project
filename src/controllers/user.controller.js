@@ -164,7 +164,6 @@ const loginUser = asyncHandler(async (req, res) => {
   //  Yes, res.cookie() sets cookies in the backend, and the browser automatically stores them
   //  Yes, res.json({ user: token }) sends the token to the frontend, allowing it to be stored manually.
 
-
   // res.cookie() means , we are setting all tokens inside res object ? right ? , since we injected the cookieparser middleware , so we can access the cookies from both req and res object ?  ✅ correct manoj!
   return res
     .status(200)
@@ -179,23 +178,32 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-
-const logoutUser = asyncHandler(async (req,res)=>{
-  // since verify middleware , we have the access to user in req object 
+const logoutUser = asyncHandler(async (req, res) => {
+  // since verify middleware , we have the access to user in req object
   await User.findByIdAndUpdate(
-    req.user?._id,{
-      $set : { refreshToken:undefined}
-    },{
-      new: true // while responding , u'll get updated value 
+    req.user?._id,
+    {
+      $set: { refreshToken: undefined },
+    },
+    {
+      new: true, // while responding , u'll get updated value
     }
-  )
+  );
 
   const options = {
-    httpOnly : true,
-    secure : true,
-  }
+    httpOnly: true,
+    secure: true,
+  };
+  //Even though the user logs out on the backend, the browser still has the authentication cookies.
+  // If we don't clear them, the user will still send them in future requests, leading to authentication issues.
 
-  res.status(200).clearCookie("accessToken", accessToken, options).clearCookie("refreshToken",refreshToken,options).json(new ApiResponse(200,"User is logout successfully"))
-})
+  // removes cookies from the client (browser) by setting them again with an empty value and expiration date in the past.
 
-export { registerUser, loginUser , logoutUser };
+  res
+    .status(200)
+    .clearCookie("accessToken", accessToken, options)
+    .clearCookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, "User is logout successfully"));
+});
+
+export { registerUser, loginUser, logoutUser };
