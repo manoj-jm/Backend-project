@@ -1,8 +1,8 @@
 // Import required modules
 import jwt from "jsonwebtoken";
-import { ApiError } from "../utils/ApiError";  
-import { asyncHandler } from "../utils/asyncHandler";  
-import { User } from "../models/user.model";   
+import { ApiError } from "../utils/ApiError.js";  
+import { asyncHandler } from "../utils/asyncHandler.js";  
+import { User } from "../models/user.model.js";   
 
 // Middleware to verify JWT (checks if user is authenticated)
 export const verifyJWT = asyncHandler(async (req, res, next) => {
@@ -12,7 +12,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
     // ✅ If token is missing, throw an Unauthorized error
     if (!token) {
-      throw new ApiError(401, "Unauthorized request");
+      throw new ApiError(401, "Unauthorized request"); // 
     }
 
     // 2️⃣ Decode & Verify JWT Token  

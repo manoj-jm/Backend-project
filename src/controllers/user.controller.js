@@ -126,7 +126,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "all  are field Required!");
   }
 
-  const user = await User.findone({
+  const user = await User.findOne({
     $or: [{ username }, { email }],
   });
   if (!user) {
@@ -201,8 +201,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
   res
     .status(200)
-    .clearCookie("accessToken", accessToken, options)
-    .clearCookie("refreshToken", refreshToken, options)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, "User is logout successfully"));
 });
 
