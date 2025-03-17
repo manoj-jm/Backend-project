@@ -298,26 +298,41 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 });
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
+  // Yes! You should delete the old avatar from Cloudinary (or wherever you're storing images) because:
+  //   1️⃣ Storage Management:If you don't delete the old avatar, it will stay in Cloudinary (or any storage), taking up unnecessary space.
+  //   2️⃣ Cost Optimization: Cloud storage is not free, and unused images increase storage costs over time.
   const avatarLocalPath = req.file?.path;
   if (!avatarLocalPath) {
     throw new ApiError(400, "file path is missing");
   }
+  // fetch the user
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  // extract the public id from old avatar url  (cloudinary format)
+  if (user.avatar) {
+    const publicId = user.avatar.split("/").pop().split(".")[0]; // Extract ID from URL
+    await cloudinary.v2.uploader.destroy(publicId); // ✅ Delete old avatar
+  }
 
   const avatar = await uploadToCloudinary(avatarLocalPath);
-
   if (!avatar.url) {
     throw new ApiError(400, "error while uploading to avatar ");
   }
 
-  const user = await User.findByIdAndUpdate(
+  const newuser = await User.findByIdAndUpdate(
     req.user?._id,
     { $set: { avatar: avatar.url } },
     { new: true }
   ).select("-password");
 
-  return res.status(200).json(new ApiResponse(200,"UserAvatar is updated successfully",user))
-});
+  // Do We Need to Delete the Old Avatar Photo?
 
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "UserAvatar is updated successfully", newuser));
+});
 
 const updateUserCoverImg = asyncHandler(async (req, res) => {
   const CoverImgLocalPath = req.file?.path;
@@ -337,7 +352,9 @@ const updateUserCoverImg = asyncHandler(async (req, res) => {
     { new: true }
   ).select("-password");
 
-  return res.status(200).json(new ApiResponse(200,"UserCoverImg is updated successfully",user))
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "UserCoverImg is updated successfully", user));
 });
 
 export {
@@ -349,5 +366,5 @@ export {
   getCurrentUser,
   updateAccountDetails,
   updateUserAvatar,
-  updateUserCoverImg
+  updateUserCoverImg,
 };
