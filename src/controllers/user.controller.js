@@ -5,6 +5,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
 import { jwt } from "jsonwebtoken";
+import mongoose from "mongoose";
+import { Types } from "mongoose";
 
 // creating a methods for access and refresh tokens generation
 
@@ -427,6 +429,72 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
+//This code is (using MongoDB Aggregation Pipeline) to fetch a user's watch history and include the video owners' details inside each video.
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+  /*{
+  $lookup: {
+    from: "destination_collection",                            //  The collection we are joining with
+    localField: "field_in_current_collection",                 // 🔹 The field in the current collection
+    foreignField: "matching_field_in_destination_collection",  // 🔹 The field in the destination collection
+    as: "new_field_name"                                       // 🔹 The field that will store the joined data
+  }
+}
+*/
+
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new Types.ObjectId(req.user?._id), // ✅ Recommended
+      },
+    },
+    {
+      $lookup: {
+        from: "Video",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          // nested lookup and we are in vedios and we from here we need to connect with user
+          {
+            $lookup: {
+              from: "User",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullname: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            // $lookup always returns an array (even if there is only one owner).
+            $addFields: {
+              $first: "$owner",
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "watch history fetched successfully"
+      )
+    );
+  // user[0] → Extracts the first (and only) user from the array returned by .aggregate(). Since we are filtering by _id, we expect only one user, but the result is still wrapped in an array.
+});
+
 export {
   registerUser,
   loginUser,
@@ -438,4 +506,5 @@ export {
   updateUserAvatar,
   getUserChannelProfile,
   updateUserCoverImg,
+  getUserWatchHistory,
 };
