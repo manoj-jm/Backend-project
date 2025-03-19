@@ -4,8 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
-import { jwt } from "jsonwebtoken";
-import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
 
 // creating a methods for access and refresh tokens generation
@@ -206,7 +205,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, "User is logout successfully"));
+    .json(new ApiResponse(200, {}, "User is logout successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
@@ -262,7 +261,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  const user = await User.findById(req.user?._id);
+  const user = await User.findById(req.user?._id); // The req.user?._id is coming from verifyJWT middleware.
   const ispasswordValid = user.isPasswordCorrect(oldPassword);
   if (!ispasswordValid) {
     throw new ApiError(401, "Invalid Password");
@@ -281,18 +280,34 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "currect user fetched successfully", req.user));
 });
 
+// const getUserByName = asyncHandler(async (req, res) => {
+//   const { username } = req.params; // 👈 Get userId from URL
+//   const user = await User.findById(username).select("-password");
+
+//   if (!user) {
+//     throw new ApiError(404, "User not found");
+//   }
+
+//   return res
+//     .status(200)
+//     .json(new ApiResponse(200, "User fetched successfully", user));
+// });
+
 const updateAccountDetails = asyncHandler(async (req, res) => {
+  // console.log("checkpiont 1")
   const { fullname, email } = req.body;
   if (!fullname || !email) {
     throw new ApiError(400, "These fiels are required!");
   }
-  const user = User.findByIdAndUpdate(
+  // console.log("checkpiont 2")
+  const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: { fullname, email }, // is equal to {fullname : fullname , email : email } since req object has user refrences
     },
     { new: true }
   ).select("-password");
+  // console.log("checkpiont 3")
 
   return res
     .status(200)
@@ -304,6 +319,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
   //   1️⃣ Storage Management:If you don't delete the old avatar, it will stay in Cloudinary (or any storage), taking up unnecessary space.
   //   2️⃣ Cost Optimization: Cloud storage is not free, and unused images increase storage costs over time.
   const avatarLocalPath = req.file?.path;
+  console.log(req.file);
   if (!avatarLocalPath) {
     throw new ApiError(400, "file path is missing");
   }
@@ -313,10 +329,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
   // extract the public id from old avatar url  (cloudinary format)
-  if (user.avatar) {
-    const publicId = user.avatar.split("/").pop().split(".")[0]; // Extract ID from URL
-    await cloudinary.v2.uploader.destroy(publicId); // ✅ Delete old avatar
-  }
+  // delete the old image
 
   const avatar = await uploadToCloudinary(avatarLocalPath);
   if (!avatar.url) {
@@ -507,4 +520,5 @@ export {
   getUserChannelProfile,
   updateUserCoverImg,
   getUserWatchHistory,
+  // getUserByName,
 };
