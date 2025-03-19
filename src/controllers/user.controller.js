@@ -5,7 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
 import jwt from "jsonwebtoken";
-import { Types } from "mongoose";
+import { mongoose } from "mongoose";
 
 // creating a methods for access and refresh tokens generation
 
@@ -373,13 +373,12 @@ const updateUserCoverImg = asyncHandler(async (req, res) => {
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-  const { username } = req.params; // from url we get the username
+  const { username } = req.params;
 
   if (!username?.trim()) {
-    throw new ApiError(400, "Username is missing");
+    throw new ApiError(400, "username is missing");
   }
 
-  // aggregation pipeline
   const channel = await User.aggregate([
     {
       $match: {
@@ -388,7 +387,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "subscriptions", // collection name becomes lowercase and plural
+        from: "subscriptions",
         localField: "_id",
         foreignField: "channel",
         as: "subscribers",
@@ -404,11 +403,15 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
-        subscribersCount: { $size: "$subscribers" },
-        subscribersToCount: { $size: "$subscribedTo" },
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
         isSubscribed: {
           $cond: {
-            if: { $in: [req.user?._id, "$subscirbers.subscriber"] },
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
             then: true,
             else: false,
           },
@@ -417,28 +420,27 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     },
     {
       $project: {
-        fullname: 1,
+        fullName: 1,
         username: 1,
         subscribersCount: 1,
-        subscribersToCount: 1,
+        channelsSubscribedToCount: 1,
         isSubscribed: 1,
         avatar: 1,
-        coverimage: 1,
+        coverImage: 1,
         email: 1,
       },
     },
   ]);
-
-  // console.log(channel);
+  console.log(channel);
 
   if (!channel?.length) {
-    throw new ApiError(404, "Channel does not exists ");
+    throw new ApiError(404, "channel does not exists");
   }
 
   return res
-    .send(200)
+    .status(200)
     .json(
-      new ApiResponse(200, channel[0], "user channel fetched successfully ")
+      new ApiResponse(200, channel[0], "User channel fetched successfully")
     );
 });
 
@@ -457,7 +459,7 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new Types.ObjectId(req.user?._id), // ✅ Recommended
+        _id: new mongoose.Types.ObjectId(req.user._id), // ✅ Recommended
       },
     },
     {
@@ -488,7 +490,9 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
           {
             // $lookup always returns an array (even if there is only one owner).
             $addFields: {
-              $first: "$owner",
+              owner: {
+                $first: "$owner",
+              },
             },
           },
         ],
