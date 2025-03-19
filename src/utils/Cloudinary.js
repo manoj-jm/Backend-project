@@ -31,4 +31,6 @@ const uploadToCloudinary = async (filepath) => {
   }
 };
 
-export { uploadToCloudinary };
+
+
+export { uploadToCloudinary};
