@@ -23,6 +23,7 @@ const uploadToCloudinary = async (filepath) => {
       if (err) {
         console.error("file can't be deleted", err);
       }
+      console.log("file deleted from local storage")
     });
     return response;
   } catch (error) {
