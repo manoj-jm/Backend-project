@@ -26,8 +26,9 @@ app.use(cookieParser()); //To parse the incoming requests with cookies
 
 // router import
 import userRouter from "./routes/user.routes.js";
-
+import likeRouter from "./routes/like.routes.js"
 // routes declarations
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/likes", likeRouter);
 
 export { app };
