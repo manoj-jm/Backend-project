@@ -5,6 +5,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadToCloudinary } from "../utils/Cloudinary.js";
+import { json } from "express";
 // import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
 // test this controller ( what is req.query includes in it )
@@ -106,7 +107,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
   const video = await uploadToCloudinary(videoFile);
   const thumb = await uploadToCloudinary(thumbnail);
-  console.log(video , " and ", thumb)
+  console.log(video, " and ", thumb);
 
   if (!video) {
     throw new ApiError(401, "video file is requied");
@@ -135,14 +136,39 @@ const getVideoById = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: get video by id
   const video = await Video.findById(videoId);
-  console.log(video.title)
-  return res.status(200).json(new ApiResponse(200,"video get successfully", video))
-
+  console.log(video.title);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "video get successfully", video));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: update video details like title, description, thumbnail
+  const { title, description, thumbnail } = req.body;
+  let thumb;
+  if (thumbnail) {
+    const thumbnailPath = req.files?.thumbnail?.[0]?.path; // Corrected field name
+    if (!thumbnailPath) {
+      throw new ApiError(400, "Thumbnail file path is not found");
+    }
+    thumb = await uploadToCloudinary(thumbnailPath);
+  }
+
+  const video = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title,
+        description,
+        ...(thumb && { thumbnail: thumb.secure_url }), // Update only if thumb exists
+      },
+    },
+    { new: true }
+  );
+
+  console.log("updated video details")
+  return res.status(200).json(new ApiResponse(200,"video updated successfully",video))
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
