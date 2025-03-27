@@ -16,14 +16,15 @@ const uploadToCloudinary = async (filepath) => {
     if (!filepath) return null;
     // upload to cloudinary
     const response = await cloudinary.uploader.upload(filepath, {
-      resource_type: "auto",  
+      resource_type: "auto",
     });
     // console.log("File has been uploaded to Cloudinary:", response);
     fs.unlink(filepath, (err) => {
       if (err) {
         console.error("file can't be deleted", err);
       }
-      console.log("file deleted from local storage")
+      console.log("file deleted from local storage");
+      console.log("uploaded!");
     });
     return response;
   } catch (error) {
@@ -32,6 +33,4 @@ const uploadToCloudinary = async (filepath) => {
   }
 };
 
-
-
-export { uploadToCloudinary};
+export { uploadToCloudinary };

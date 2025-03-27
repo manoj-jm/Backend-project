@@ -4,8 +4,10 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadToCloudinary } from "../utils/Cloudinary.js";
 // import {uploadOnCloudinary} from "../utils/cloudinary.js"
 
+// test this controller ( what is req.query includes in it )
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   console.log(userId);
@@ -92,9 +94,41 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
-  const { title, description } = req.body;
-  // TODO: get video, upload to cloudinary, create video
+  // console.log("Uploaded Files:", req.files); // Debugging multer's output
 
+  const { title, description } = req.body;
+  console.log(title, description);
+  const videoFile = req.files?.videoFile?.[0].path; // Correct field name
+  const thumbnail = req.files?.thumbnail?.[0].path; // Correct field name
+
+  // console.log("Video File:", videoFile);
+  // console.log("Thumbnail File:", thumbnail);
+
+  const video = await uploadToCloudinary(videoFile);
+  const thumb = await uploadToCloudinary(thumbnail);
+  console.log(video , " and ", thumb)
+
+  if (!video) {
+    throw new ApiError(401, "video file is requied");
+  }
+
+  const publish = await Video.create({
+    videoFile: video.secure_url,
+    thumbnail: thumb.secure_url,
+    owner: req.user._id,
+    title,
+    description,
+    duration: 0, // Set dynamically later
+    views: 0,
+    likes: 0,
+    isPublished: true,
+  });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, "User is published video successfully", publish)
+    );
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
