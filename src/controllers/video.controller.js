@@ -95,19 +95,24 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
-  // console.log("Uploaded Files:", req.files); // Debugging multer's output
-
+  
   const { title, description } = req.body;
+  console.log("Uploaded Files:", req.files); // Debugging multer's output
   console.log(title, description);
+  
   const videoFile = req.files?.videoFile?.[0].path; // Correct field name
   const thumbnail = req.files?.thumbnail?.[0].path; // Correct field name
 
-  // console.log("Video File:", videoFile);
-  // console.log("Thumbnail File:", thumbnail);
-
+  if (!videoFile || !thumbnail) {
+    throw new ApiError(400, "Both video file and thumbnail are required");
+  }
   const video = await uploadToCloudinary(videoFile);
+  // if (!video || !video.secure_url) {
+  //   throw new ApiError(400, "Failed to upload video to Cloudinary");
+  // }
+
   const thumb = await uploadToCloudinary(thumbnail);
-  console.log(video, " and ", thumb);
+  // console.log(video, " and ", thumb);
 
   if (!video) {
     throw new ApiError(401, "video file is requied");
@@ -185,7 +190,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
- const video = await Video.findById(videoId);
+  const video = await Video.findById(videoId);
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
