@@ -8,32 +8,29 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
   if (!isValidObjectId(videoId)) {
-      throw new ApiError(400, "Invalid videoId");
+    throw new ApiError(400, "Invalid videoId");
   }
-
 
   const likedAlready = await Like.findOne({
-      video: videoId,
-      likedBy: req.user?._id,
+    video: videoId,
+    likedBy: req.user?._id,
   });
+  console.log("likedAlready : ", likedAlready);
 
   if (likedAlready) {
-      await Like.findByIdAndDelete(likedAlready?._id);
+    await Like.findByIdAndDelete(likedAlready?._id);
 
-      return res
-          .status(200)
-          .json(new ApiResponse(200, { isLiked: false }));
+    return res.status(200).json(new ApiResponse(200, { isLiked: false }));
   }
 
+  console.log("video : ", videoId);
   await Like.create({
-      video: videoId,
-      likedBy: req.user?._id,
+    video: videoId,
+    likedBy: req.user?._id,
   });
 
-  return res
-      .status(200)
-      .json(new ApiResponse(200, { isLiked: true }));
-}); // trouble shoot 
+  return res.status(200).json(new ApiResponse(200, { isLiked: true }));
+}); // trouble shoot
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;

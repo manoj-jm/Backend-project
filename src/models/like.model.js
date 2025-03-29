@@ -6,9 +6,9 @@ const likesSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Comment",
     },
-    vedio: {
+    video: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Vedio",
+      ref: "Video",
     },
     likedBy: {
       type: mongoose.Schema.Types.ObjectId,
